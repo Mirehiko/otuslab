@@ -1,39 +1,42 @@
-const data = {
-    "name": 1,
-    "items": [{
-        "name": 2,
-        "items": [{ "name": 3, "items": [{"name": 0}] }, { "name": 4 }]
-    }, {
-        "name": 5,
-        "items": [{ "name": 6 }]
-    },
-        {
-            "name": 7,
-            "items": [{ "name": 8, "items": [{"name": 9}] }]
-        }]
-};
+const fs = require('node:fs');
+const {Transform} = require('node:stream');
 
-function getNodeView(item, step) {
-    let res = []
-    if (!step) {
-        res.push( item.name);
-    }
+;(async() => {
+	const readStream = fs.createReadStream(__dirname + '/input-text.txt', {encoding: 'utf-8'});
+	const writeStream = fs.createWriteStream(__dirname + '/output-text.txt', {encoding: 'utf-8'});
+	const process = new Transform({
+		transform(chunk, encoding, callback) {
+			console.log('Input data:');
+			console.log(chunk.toString()+'\n');
+			const data = chunk.toString();
+			
+			const rows = data.split('\n');
+			let result = '';
+			rows.forEach(row => {
+				const words = row.replace(/[\W_]+/g, ' ').split(' ');
+				console.log('Row:', row, '.', 'Words:', words)
+				const wordEntries = new Map();
+				words.forEach(word => {
+					const writedWord = wordEntries.get(word);
+					if (writedWord) {
+						wordEntries.set(word, writedWord + 1)
+					}
+					else {
+						wordEntries.set(word, 1)
+					}
+				});
+				console.log(wordEntries+'\n')
+				result += JSON.stringify(Array.from(wordEntries.keys()).sort().reduce((acc, cur) => {
+					acc.push(wordEntries.get(cur))
+					return acc
+				}, [])) + '\n';
+			})
+			console.log(result)
+			callback(null, result)
+		},
+	})
 
-    item.items?.forEach((child, index) => {
-        const isNotLast = index !== item.items.length -1;
-        res.push((isNotLast ? '├── ' : '└─ ') + child.name)
-        res.push(...getNodeView(child, step ? step : true).map(i => `${isNotLast ? '│' : ''}   ` + i))
-    })
-    return res;
-}
-
-function drawTree(data) {
-    getNodeView(data).forEach(i => {
-        console.log(i)
-    })
-}
-
-drawTree(data)
-
+	readStream.pipe(process).pipe(writeStream)
+})()
 
 
