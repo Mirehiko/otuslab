@@ -34,7 +34,11 @@ const {Transform} = require('node:stream');
 			console.log(result)
 			callback(null, result)
 		},
-	})
+		flush(callback) {
+			this.push();
+			callback();
+		}
+	} );
 
 	readStream.pipe(process).pipe(writeStream)
 })()
